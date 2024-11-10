@@ -85,45 +85,6 @@ private:
     void initializeRenderer(RenderingOptions renderingOptions);
 
 private:
-    GLfloat gTriangleVertices[12] = {
-        -1.0F,
-        -1.0F,
-
-        -1.0F,
-        +1.0F,
-
-        +1.0F,
-        -1.0F,
-
-        +1.0F,
-        -1.0F,
-
-        -1.0F,
-        +1.0F,
-
-        +1.0F,
-        +1.0F,
-    };
-
-    GLfloat gTextureCoords[12] = {
-        0.0F,
-        0.0F,
-
-        0.0F,
-        1.0F,
-
-        1.0F,
-        0.0F,
-
-        1.0F,
-        0.0F,
-
-        0.0F,
-        1.0F,
-
-        1.0F,
-        1.0F,
-    };
 
     GLfloat gViewModelMatrix[16] = {
         1.0F, 0.0F, 0.0F, 0.0F,

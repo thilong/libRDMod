@@ -85,6 +85,6 @@ target_link_libraries(libretrodroid
                       log 
                       EGL
                       oboe
-                      GLESv3
+                      GLESv2
 )
 

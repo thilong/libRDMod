@@ -38,8 +38,8 @@ namespace libretrodroid {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, linear ? GL_LINEAR : GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, linear ? GL_LINEAR : GL_NEAREST);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
-
+        //glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8_OES, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         GLenum err = glGetError();
         if(err != GL_NO_ERROR) {
             LOGE("Error while creating texture. Leaving! %s %p", glGetString(err), &glClearColor);
@@ -59,7 +59,7 @@ namespace libretrodroid {
             glBindRenderbuffer(GL_RENDERBUFFER, result->depth_buffer);
             glRenderbufferStorage(
                     GL_RENDERBUFFER,
-                    includeStencil ? GL_DEPTH24_STENCIL8 : GL_DEPTH_COMPONENT16,
+                    includeStencil ? GL_DEPTH24_STENCIL8_OES : GL_DEPTH_COMPONENT16,
                     width,
                     height
             );

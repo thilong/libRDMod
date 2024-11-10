@@ -170,7 +170,7 @@ namespace libretrodroid {
         if (skipDuplicateFrames && !isDirty) return;
         isDirty = false;
 
-        glDisable(GL_DEPTH_TEST);
+        //glDisable(GL_DEPTH_TEST);
         //LOGE("glClearColor: %p", &glClearColor);
         for (int i = 0; i < shadersChain.size(); ++i) {
             auto shader = shadersChain[i];

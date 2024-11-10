@@ -47,7 +47,7 @@ class SampleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.sample_activity)
-        val platform = "nes"
+        val platform = "dc"
         var gamePath = ""
         var corePath = ""
         if (platform == "nes") {

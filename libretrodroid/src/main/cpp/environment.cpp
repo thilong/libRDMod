@@ -155,7 +155,7 @@ Environment::environment_handle_set_hw_render(struct retro_hw_render_callback *h
     hwContextType = hw_render_callback->context_type;
     hwVersionMajor = hw_render_callback->version_major;
     hwVersionMinor = hw_render_callback->version_minor;
-    if(hwVersionMajor == 0) hwVersionMajor = 3;
+    if(hwVersionMajor == 0) hwVersionMajor = 2;
 
     if(hwContextType != RETRO_HW_CONTEXT_OPENGLES2 && hwContextType == RETRO_HW_CONTEXT_OPENGLES3) {
         LOGE("Not support for render context type: %d, only support opengl es 2 and 3", hwContextType);
@@ -270,7 +270,7 @@ bool Environment::handle_callback_environment(unsigned cmd, void *data) {
 
         case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER: {
             LOGD("Called RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER");
-            *((unsigned *) data) = retro_hw_context_type::RETRO_HW_CONTEXT_OPENGLES3;
+            *((unsigned *) data) = retro_hw_context_type::RETRO_HW_CONTEXT_OPENGLES2;
             return true;
         }
 
