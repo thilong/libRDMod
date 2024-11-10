@@ -1,4 +1,4 @@
-# lbiRDMod
+# libRDMod
 This project is base on [LibretroDroid](https://github.com/Swordfish90/LibretroDroid)
 LibretroDroid is a simple C++ LibRetro frontend library for Android. It's powering [Lemuroid](https://github.com/Swordfish90/Lemuroid).
 
