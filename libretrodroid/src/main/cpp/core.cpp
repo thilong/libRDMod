@@ -26,9 +26,9 @@ Core::Core(const std::string& soCorePath) {
     open(soCorePath);
 }
 
-void* get_symbol(void* handle, const char* symbol) {
+void* get_symbol(void* handle, const char* symbol, bool exitOnFail = true) {
     void* result = dlsym(handle, symbol);
-    if (!result) {
+    if (!result && exitOnFail) {
         LOGE("Cannot get symbol %s... Quitting", symbol);
         throw std::runtime_error("Missing libretro core symbol");
     }

@@ -10,10 +10,34 @@
 - NDS
   - libdesmume
   - libdesmume2015
+  - libmelondsds
+  - libmelonds
 - N64
   - libmupen64plusnextgles3
   - libparalleln64  xx
+- GB/GBC
+  - libgambatte
+  - libmgba
 - GBA
+  - libmgba
+  - libvbam
+  - libvbanext
 - DC
-  - flycase
+  - libflycase
+- NGP
+  - ??
 - PS
+  - libpcsxrearmed
+  - libswanstation       xx
+  - libmednafenpsxhw
+- PSP
+  - libppsspp
+- Saturn
+  - libmednafensaturn
+- WS/WSC
+  - libmednafenwswan
+  - 
+- 3DO
+- EasyRPG
+- DOS
+- 

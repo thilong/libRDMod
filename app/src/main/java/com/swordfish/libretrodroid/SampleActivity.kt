@@ -47,7 +47,7 @@ class SampleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.sample_activity)
-        val platform = "sfc"
+        val platform = "mix"
         var gamePath = ""
         var corePath = ""
         if (platform == "nes") {
@@ -55,19 +55,6 @@ class SampleActivity : AppCompatActivity() {
             FileUtil.copyFromAsses(this, "demo.nes", gamePath)
             //corePath = "libfceumm.so"
             corePath = filesDir.absolutePath + "/libquicknes.so"
-        } else if (platform == "dc") {
-            gamePath = getExternalFilesDir(null)?.absolutePath + "/demo.cdi"
-            FileUtil.copyFromAsses(this, "demo.cdi", gamePath)
-            corePath = "libflycast.so"
-        }else if(platform == "nds"){
-            gamePath = getExternalFilesDir(null)?.absolutePath + "/demo.nds"
-            corePath = filesDir.absolutePath + "/libdesmume.so"
-        }else if(platform == "n64"){
-            gamePath = getExternalFilesDir(null)?.absolutePath + "/demo.n64"
-            corePath = filesDir.absolutePath + "/libparalleln64.so"
-        }else if(platform == "sfc"){
-            gamePath = getExternalFilesDir(null)?.absolutePath + "/demo.sfc"
-            corePath = filesDir.absolutePath + "/libsnes9x.so"
         }
         /* Prepare config for GLRetroView */
         val data = GLRetroViewData(this).apply {
