@@ -19,6 +19,8 @@ package com.swordfish.libretrodroid
 
 import android.app.ActivityManager
 import android.content.Context
+import android.opengl.EGL14
+import android.opengl.EGLExt
 import android.opengl.GLSurfaceView
 import android.util.Log
 import android.view.InputDevice
@@ -41,11 +43,15 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import javax.microedition.khronos.egl.EGL10
+import javax.microedition.khronos.egl.EGLContext
+import javax.microedition.khronos.egl.EGLDisplay
 
 class GLRetroView(
     context: Context,
     private val data: GLRetroViewData
-) : AspectRatioGLSurfaceView(context), LifecycleObserver {
+) : AspectRatioGLSurfaceView(context),
+    LifecycleObserver, GLSurfaceView.EGLConfigChooser, GLSurfaceView.EGLContextFactory {
 
     var audioEnabled: Boolean by Delegates.observable(true) { _, _, value ->
         LibretroDroid.setAudioEnabled(value)
@@ -59,8 +65,6 @@ class GLRetroView(
         LibretroDroid.setShaderConfig(buildShader(value))
     }
 
-    private val openGLESVersion: Int
-
     private var isGameLoaded = false
     private var isEmulationReady = false
     private var isAborted = false
@@ -72,19 +76,12 @@ class GLRetroView(
 
     private var lifecycle: Lifecycle? = null
 
-    init {
-        openGLESVersion = getGLESVersion(context)
-        preserveEGLContextOnPause = true
-        setEGLContextClientVersion(openGLESVersion)
-        setRenderer(Renderer())
-        keepScreenOn = true
-    }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-    fun onCreate(lifecycleOwner: LifecycleOwner) = catchExceptions {
-        lifecycle = lifecycleOwner.lifecycle
+    override fun chooseConfig(egl: EGL10?, display: EGLDisplay?): EGLConfig {
+        if (egl == null) {
+            throw IllegalArgumentException("egl is null, can't run under opengl es")
+        }
+        //需要在这里加载core
         LibretroDroid.create(
-            openGLESVersion,
             data.coreFilePath,
             data.systemDirectory,
             data.savesDirectory,
@@ -97,6 +94,77 @@ class GLRetroView(
             getDeviceLanguage()
         )
         LibretroDroid.setRumbleEnabled(data.rumbleEventsEnabled)
+
+        initializeCore()
+
+        val glVersion = LibretroDroid.getHwVersionMajor()
+        val glMinorVersion = LibretroDroid.getHwVersionMinor()
+        var bitType = EGLExt.EGL_OPENGL_ES3_BIT_KHR
+        if (glVersion == 2) bitType = EGL14.EGL_OPENGL_ES2_BIT
+
+        val config = intArrayOf(
+            EGL10.EGL_RENDERABLE_TYPE, bitType,
+            EGL10.EGL_RED_SIZE, 8,
+            EGL10.EGL_GREEN_SIZE, 8,
+            EGL10.EGL_BLUE_SIZE, 8,
+            EGL10.EGL_ALPHA_SIZE, 8,
+            EGL10.EGL_DEPTH_SIZE, 16,
+            EGL10.EGL_NONE
+        )
+        Log.i(TAG_LOG, "[GLRetroView] EGL config: $glVersion.$glMinorVersion")
+        val numConfig = IntArray(1)
+        if (!egl.eglChooseConfig(display, config, null, 0, numConfig)) {
+            throw IllegalArgumentException("eglChooseConfig failed")
+        }
+        val numConfigs = numConfig[0]
+        if (numConfigs <= 0) {
+            throw IllegalArgumentException("No configs match configSpec")
+        }
+        val configs = arrayOfNulls<EGLConfig>(numConfigs)
+        if (!egl.eglChooseConfig(display, config, configs, numConfigs, numConfig)) {
+            throw IllegalArgumentException("eglChooseConfig#2 failed")
+        }
+        return configs[0]!!
+    }
+
+    override fun createContext(
+        egl: EGL10?,
+        display: EGLDisplay?,
+        eglConfig: EGLConfig?
+    ): EGLContext {
+        if (egl == null) {
+            throw IllegalArgumentException("can't create egl context for null")
+        }
+        var glVersion = LibretroDroid.getHwVersionMajor()
+        if (glVersion != 2 && glVersion != 3) glVersion = 3
+        val attribList = intArrayOf(
+            EGL14.EGL_CONTEXT_CLIENT_VERSION, glVersion,
+            EGL10.EGL_NONE
+        )
+
+        val context = egl.eglCreateContext(display, eglConfig, EGL10.EGL_NO_CONTEXT, attribList)
+
+        //egl.eglMakeCurrent(display, egl.eglGetCurrentSurface(EGL10.EGL_DRAW), egl.eglGetCurrentSurface(EGL10.EGL_READ), context)
+        return context
+
+    }
+
+    override fun destroyContext(egl: EGL10?, display: EGLDisplay?, context: EGLContext?) {
+        egl?.eglDestroyContext(display, context)
+    }
+
+    init {
+        preserveEGLContextOnPause = true
+        setEGLConfigChooser(this)
+        setEGLContextFactory(this)
+
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    fun onCreate(lifecycleOwner: LifecycleOwner) = catchExceptions {
+        lifecycle = lifecycleOwner.lifecycle
+        setRenderer(Renderer())
+        keepScreenOn = true
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -124,9 +192,11 @@ class GLRetroView(
             MotionEvent.ACTION_DOWN -> {
                 sendTouchEvent(event)
             }
+
             MotionEvent.ACTION_MOVE -> {
                 sendTouchEvent(event)
             }
+
             MotionEvent.ACTION_UP -> {
                 sendMotionEvent(MOTION_SOURCE_POINTER, -1f, -1f)
             }
@@ -145,7 +215,8 @@ class GLRetroView(
     fun serializeState(): ByteArray = runOnGLThread {
         LibretroDroid.serializeState()
     }
-    fun setCheat(index : Int, enable : Boolean, code : String) = runOnGLThread {
+
+    fun setCheat(index: Int, enable: Boolean, code: String) = runOnGLThread {
         LibretroDroid.setCheat(index, enable, code)
     }
 
@@ -205,7 +276,11 @@ class GLRetroView(
 
     private fun getGLESVersion(context: Context): Int {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        return if (activityManager.deviceConfigurationInfo.reqGlEsVersion >= 0x30000) { 3 } else { 2 }
+        return if (activityManager.deviceConfigurationInfo.reqGlEsVersion >= 0x30000) {
+            3
+        } else {
+            2
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -295,7 +370,8 @@ class GLRetroView(
 
         override fun onSurfaceCreated(gl: GL10, config: EGLConfig) = catchExceptions {
             Thread.currentThread().priority = Thread.MAX_PRIORITY
-            initializeCore()
+            Log.w(TAG_LOG, "[GLRetroView] onSurfaceCreated")
+            LibretroDroid.onSurfaceCreated()
             lifecycle?.coroutineScope?.launch {
                 retroGLEventsSubject.emit(GLRetroEvents.SurfaceCreated)
             }
@@ -319,9 +395,7 @@ class GLRetroView(
             LibretroDroid.unserializeSRAM(data.saveRAMState)
             data.saveRAMState = null
         }
-        LibretroDroid.onSurfaceCreated()
         isGameLoaded = true
-
         KtUtils.runOnUIThread {
             lifecycle?.addObserver(RenderLifecycleObserver())
         }
@@ -395,12 +469,17 @@ class GLRetroView(
                     LibretroDroid.SHADER_UPSCALE_CUT_PARAM_LUMA_ADJUST_GAMMA to toParam(config.lumaAdjustGamma),
                 )
             )
+
             is ShaderConfig.CUT2 -> GLRetroShader(
                 LibretroDroid.SHADER_UPSCALE_CUT2,
                 buildParams(
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_USE_DYNAMIC_BLEND to toParam(config.useDynamicBlend),
-                    LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_BLEND_MIN_CONTRAST_EDGE to toParam(config.blendMinContrastEdge),
-                    LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_BLEND_MAX_CONTRAST_EDGE to toParam(config.blendMaxContrastEdge),
+                    LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_BLEND_MIN_CONTRAST_EDGE to toParam(
+                        config.blendMinContrastEdge
+                    ),
+                    LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_BLEND_MAX_CONTRAST_EDGE to toParam(
+                        config.blendMaxContrastEdge
+                    ),
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_BLEND_MIN_SHARPNESS to toParam(config.blendMinSharpness),
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_BLEND_MAX_SHARPNESS to toParam(config.blendMaxSharpness),
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_STATIC_BLEND_SHARPNESS to toParam(config.staticSharpness),
@@ -408,15 +487,22 @@ class GLRetroView(
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_EDGE_MIN_VALUE to toParam(config.edgeMinValue),
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_LUMA_ADJUST_GAMMA to toParam(config.lumaAdjustGamma),
                     LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_SOFT_EDGES_SHARPENING to toParam(config.softEdgesSharpening),
-                    LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_SOFT_EDGES_SHARPENING_AMOUNT to toParam(config.softEdgesSharpeningAmount),
+                    LibretroDroid.SHADER_UPSCALE_CUT2_PARAM_SOFT_EDGES_SHARPENING_AMOUNT to toParam(
+                        config.softEdgesSharpeningAmount
+                    ),
                 )
             )
+
             is ShaderConfig.CUT3 -> GLRetroShader(
                 LibretroDroid.SHADER_UPSCALE_CUT3,
                 buildParams(
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_USE_DYNAMIC_BLEND to toParam(config.useDynamicBlend),
-                    LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_BLEND_MIN_CONTRAST_EDGE to toParam(config.blendMinContrastEdge),
-                    LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_BLEND_MAX_CONTRAST_EDGE to toParam(config.blendMaxContrastEdge),
+                    LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_BLEND_MIN_CONTRAST_EDGE to toParam(
+                        config.blendMinContrastEdge
+                    ),
+                    LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_BLEND_MAX_CONTRAST_EDGE to toParam(
+                        config.blendMaxContrastEdge
+                    ),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_BLEND_MIN_SHARPNESS to toParam(config.blendMinSharpness),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_BLEND_MAX_SHARPNESS to toParam(config.blendMaxSharpness),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_STATIC_BLEND_SHARPNESS to toParam(config.staticSharpness),
@@ -424,7 +510,9 @@ class GLRetroView(
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_EDGE_MIN_VALUE to toParam(config.edgeMinValue),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_LUMA_ADJUST_GAMMA to toParam(config.lumaAdjustGamma),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_SOFT_EDGES_SHARPENING to toParam(config.softEdgesSharpening),
-                    LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_SOFT_EDGES_SHARPENING_AMOUNT to toParam(config.softEdgesSharpeningAmount),
+                    LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_SOFT_EDGES_SHARPENING_AMOUNT to toParam(
+                        config.softEdgesSharpeningAmount
+                    ),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_SOFT_EDGES_THRESHOLD to toParam(config.softEdgesThreshold),
                     LibretroDroid.SHADER_UPSCALE_CUT3_PARAM_MAX_SEARCH_DISTANCE to toParam(config.maxSearchDistance),
                 )
@@ -462,12 +550,12 @@ class GLRetroView(
     }
 
     sealed class GLRetroEvents {
-        object FrameRendered: GLRetroEvents()
-        object SurfaceCreated: GLRetroEvents()
+        object FrameRendered : GLRetroEvents()
+        object SurfaceCreated : GLRetroEvents()
     }
 
     companion object {
-        private val TAG_LOG = GLRetroView::class.java.simpleName
+        private val TAG_LOG = "libretrodroid" //GLRetroView::class.java.simpleName
 
         const val MOTION_SOURCE_DPAD = LibretroDroid.MOTION_SOURCE_DPAD
         const val MOTION_SOURCE_ANALOG_LEFT = LibretroDroid.MOTION_SOURCE_ANALOG_LEFT
@@ -481,4 +569,6 @@ class GLRetroView(
         const val ERROR_CHEAT = LibretroDroid.ERROR_CHEAT
         const val ERROR_GENERIC = LibretroDroid.ERROR_GENERIC
     }
+
+
 }

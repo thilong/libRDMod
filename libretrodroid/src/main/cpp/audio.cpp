@@ -146,7 +146,7 @@ double Audio::computeDynamicBufferConversionFactor(double dt) {
 
     double finalAdjustment = proportionalAdjustment + integralAdjustment;
 
-    LOGD("Audio speed adjustments (p: %f) (i: %f)", proportionalAdjustment, integralAdjustment);
+    //LOGD("Audio speed adjustments (p: %f) (i: %f)", proportionalAdjustment, integralAdjustment);
 
     return 1.0 - (finalAdjustment);
 }

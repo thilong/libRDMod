@@ -4256,7 +4256,7 @@ struct retro_device_power
  * uncommon tasks. Extensible. */
 typedef bool (RETRO_CALLCONV *retro_environment_t)(unsigned cmd, void *data);
 
-/* Render a frame. Pixel format is 15-bit 0RGB1555 native endian
+/* WriteTextureData a frame. Pixel format is 15-bit 0RGB1555 native endian
  * unless changed (see RETRO_ENVIRONMENT_SET_PIXEL_FORMAT).
  *
  * Width and height specify dimensions of buffer.

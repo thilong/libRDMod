@@ -68,9 +68,7 @@ public:
 
     void onNewFrame(const void *data, unsigned width, unsigned height, size_t pitch);
 
-    uintptr_t getCurrentFramebuffer() {
-        return renderer->getFramebuffer();
-    };
+    uintptr_t getCurrentFramebuffer();
 
     bool rendersInVideoCallback() {
         return renderer->rendersInVideoCallback();
@@ -150,6 +148,7 @@ private:
     std::vector<ShaderChainEntry> shadersChain;
 
     Renderer* renderer;
+    unsigned int vertexBuffer = 0;
 };
 
 }

@@ -17,6 +17,8 @@
 
 package com.swordfish.libretrodroid;
 
+import android.graphics.Bitmap;
+
 import java.util.List;
 
 public class LibretroDroid {
@@ -82,7 +84,6 @@ public class LibretroDroid {
     public static final int ERROR_GENERIC = -1;
 
     public static native void create(
-        int GLESVersion,
         String coreFilePath,
         String systemDir,
         String savesDir,
@@ -140,4 +141,8 @@ public class LibretroDroid {
 
     public static native Controller[][] getControllers();
     public static native void setControllerType(int port, int type);
+
+    public static native int getHwContextType();
+    public static native int getHwVersionMajor();
+    public static native int getHwVersionMinor();
 }

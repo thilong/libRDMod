@@ -102,7 +102,7 @@ public:
     }
 
     /**
-     * Render the notes into a stereo buffer.
+     * WriteTextureData the notes into a stereo buffer.
      * Passing a nullptr will cause the calculated results to be discarded.
      * The workload should be the same.
      * @param buffer a real stereo buffer or nullptr

@@ -73,7 +73,6 @@ public:
     void onSurfaceChanged(unsigned int width, unsigned int height);
 
     void create(
-        unsigned int GLESVersion,
         const std::string& soFilePath,
         const std::string& systemDir,
         const std::string& savesDir,
@@ -156,7 +155,6 @@ private:
     };
 
     float screenRefreshRate = 60.0;
-    int openglESVersion = 2;
     bool skipDuplicateFrames = false;
 
     float defaultAspectRatio = 1.0;

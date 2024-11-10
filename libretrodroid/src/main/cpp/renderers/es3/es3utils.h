@@ -34,9 +34,11 @@ public:
     struct Framebuffer {
         unsigned int framebuffer = 0;
         unsigned int texture = 0;
-        std::optional<unsigned int> depth = std::nullopt;
+        unsigned int depth_buffer = 0;
         unsigned int width = 0;
         unsigned int height = 0;
+
+        bool  depth_flag = false;
     };
 
 public:

@@ -56,7 +56,7 @@ void LibretroDroid::callback_hw_video_refresh(
     unsigned height,
     size_t pitch
 ) {
-    LOGD("hw video refresh callback called %i %i", width, height);
+    //LOGD("hw video refresh callback called %i %i", width, height);
     LibretroDroid::getInstance().handleVideoRefresh(data, width, height, pitch);
 }
 
@@ -175,12 +175,13 @@ std::pair<int8_t*, size_t> LibretroDroid::serializeSRAM() {
 }
 
 void LibretroDroid::onSurfaceChanged(unsigned int width, unsigned int height) {
-    LOGD("Performing libretrodroid onSurfaceChanged");
+    LOGD("Performing libretrodroid onSurfaceChanged [%u x %u]", width, height);
     video->updateScreenSize(width, height);
 }
 
 void LibretroDroid::onSurfaceCreated() {
-    LOGD("Performing libretrodroid onSurfaceCreated");
+    int glVersion = Environment::getInstance().getHwVersionMajor();
+    LOGD("Performing libretrodroid onSurfaceCreated, opengl es version: %d", glVersion);
 
     struct retro_system_av_info system_av_info {};
     core->retro_get_system_av_info(&system_av_info);
@@ -193,7 +194,7 @@ void LibretroDroid::onSurfaceCreated() {
         system_av_info.geometry.base_height,
         Environment::getInstance().isUseDepth(),
         Environment::getInstance().isUseStencil(),
-        openglESVersion,
+        glVersion,
         Environment::getInstance().getPixelFormat()
     };
 
@@ -225,14 +226,13 @@ void LibretroDroid::onMotionEvent(
 }
 
 void LibretroDroid::onKeyEvent(unsigned int port, int action, int keyCode) {
-    LOGD("Received key event with action (%d) and keycode (%d)", action, keyCode);
+    //LOGD("Received key event with action (%d) and keycode (%d)", action, keyCode);
     if (input) {
         input->onKeyEvent(port, action, keyCode);
     }
 }
 
 void LibretroDroid::create(
-    unsigned int GLESVersion,
     const std::string& soFilePath,
     const std::string& systemDir,
     const std::string& savesDir,
@@ -252,7 +252,6 @@ void LibretroDroid::create(
     Environment::getInstance().setLanguage(language);
     Environment::getInstance().setEnableVirtualFileSystem(enableVirtualFileSystem);
 
-    openglESVersion = GLESVersion;
     screenRefreshRate = refreshRate;
     skipDuplicateFrames = duplicateFrames;
     audioEnabled = true;
@@ -274,11 +273,6 @@ void LibretroDroid::create(
     core->retro_init();
 
     preferLowLatencyAudio = lowLatencyAudio;
-
-    // HW accelerated cores are only supported on opengles 3.
-    if (Environment::getInstance().isUseHwAcceleration() && openglESVersion < 3) {
-        throw LibretroDroidError("OpenGL ES 3 is required for this Core", ERROR_GL_NOT_COMPATIBLE);
-    }
 
     fragmentShaderConfig = shaderConfig;
 
@@ -398,6 +392,7 @@ void LibretroDroid::destroy() {
 
     Environment::getInstance().deinitialize();
     VFS::getInstance().deinitialize();
+
 }
 
 void LibretroDroid::resume() {
@@ -417,7 +412,7 @@ void LibretroDroid::pause() {
 }
 
 void LibretroDroid::step() {
-    LOGD("Stepping into retro_run()");
+    //LOGD("Stepping into retro_run()");
 
     unsigned frames = 1;
     if (fpsSync) {

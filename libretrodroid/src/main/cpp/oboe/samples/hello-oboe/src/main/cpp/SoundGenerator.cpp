@@ -34,7 +34,7 @@ SoundGenerator::SoundGenerator(int32_t sampleRate, int32_t channelCount) :
 }
 
 void SoundGenerator::renderAudio(float *audioData, int32_t numFrames) {
-    // Render each oscillator into its own channel
+    // WriteTextureData each oscillator into its own channel
     std::fill_n(mBuffer.get(), kSharedBufferSize, 0);
     for (int i = 0; i < mChannelCount; ++i) {
         mOscillators[i].renderAudio(mBuffer.get(), numFrames);

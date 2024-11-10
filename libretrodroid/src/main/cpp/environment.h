@@ -31,6 +31,7 @@
 #include "../../libretro-common/include/libretro.h"
 #include "log.h"
 #include "rumblestate.h"
+#include "retroarch_mod.h"
 
 class Environment {
 public:
@@ -86,6 +87,9 @@ public:
     struct retro_disk_control_callback* getRetroDiskControlCallback() const;
 
     int getPixelFormat() const;
+    int getHwContextType() const;
+    int getHwVersionMajor() const;
+    int getHwVersionMinor() const;
     bool isUseHwAcceleration() const;
     bool isUseDepth() const;
     bool isUseStencil() const;
@@ -126,6 +130,9 @@ private:
     bool useVirtualFileSystem = false;
 
     int pixelFormat = RETRO_PIXEL_FORMAT_RGB565;
+    int hwContextType = RETRO_HW_CONTEXT_OPENGLES2;
+    int hwVersionMajor = 2;
+    int hwVersionMinor = 0;
     bool useHWAcceleration = false;
     bool useDepth = false;
     bool useStencil = false;

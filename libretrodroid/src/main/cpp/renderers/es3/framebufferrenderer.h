@@ -18,8 +18,8 @@
 #ifndef LIBRETRODROID_FRAMEBUFFERRENDERER_H
 #define LIBRETRODROID_FRAMEBUFFERRENDERER_H
 
-#include "GLES3/gl3.h"
-#include "GLES3/gl3ext.h"
+#include "GLES2/gl2.h"
+#include "GLES2/gl2ext.h"
 
 #include "../renderer.h"
 #include "es3utils.h"

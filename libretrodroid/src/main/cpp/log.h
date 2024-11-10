@@ -20,8 +20,8 @@
 
 #define MODULE_NAME "libretrodroid"
 
-#define VERBOSE_LOGGING false
-#define GLES_LOGGING false
+#define VERBOSE_LOGGING true
+#define GLES_LOGGING true
 
 #if GLES_LOGGING
 #include <EGL/egl.h>
@@ -69,6 +69,7 @@ static void MessageCallback(
     }
 }
 
+__unused
 static bool initializeGLESLogCallbackIfNeeded() {
     auto debugCallback = (void (*)(void *, void *)) eglGetProcAddress("glDebugMessageCallback");
     if (debugCallback) {
