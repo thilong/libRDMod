@@ -51,10 +51,10 @@ class SampleActivity : AppCompatActivity() {
         var gamePath = ""
         var corePath = ""
         if (platform == "mix") {
-            gamePath = getExternalFilesDir(null)?.absolutePath + "/demo.jar"
-            //FileUtil.copyFromAsses(this, "demo.nes", gamePath)
+            gamePath = getExternalFilesDir(null)?.absolutePath + "/demo.nes"
+            FileUtil.copyFromAsses(this, "demo.nes", gamePath)
             //corePath = "libfceumm.so"
-            corePath = filesDir.absolutePath + "/libjaxe.so"
+            corePath = filesDir.absolutePath + "/libfceumm.so"
         }
         /* Prepare config for GLRetroView */
         val data = GLRetroViewData(this).apply {
@@ -118,7 +118,7 @@ class SampleActivity : AppCompatActivity() {
 
         /* Initialize the main emulator view */
         retroView = GLRetroView(this, data)
-        retroView.setResizeMode(AspectRatioGLSurfaceView.RESIZE_MODE_FILL)
+        retroView.setResizeMode(AspectRatioGLSurfaceView.RESIZE_MODE_FIT)
         lifecycle.addObserver(retroView)
 
         /* Get the FrameLayout to house the GLRetroView */

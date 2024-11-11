@@ -47,11 +47,7 @@ import javax.microedition.khronos.egl.EGL10
 import javax.microedition.khronos.egl.EGLContext
 import javax.microedition.khronos.egl.EGLDisplay
 
-class GLRetroView(
-    context: Context,
-    private val data: GLRetroViewData
-) : AspectRatioGLSurfaceView(context),
-    LifecycleObserver, GLSurfaceView.EGLConfigChooser, GLSurfaceView.EGLContextFactory {
+class GLRetroView(context: Context, private val data: GLRetroViewData) : AspectRatioGLSurfaceView(context), LifecycleObserver, GLSurfaceView.EGLConfigChooser, GLSurfaceView.EGLContextFactory {
 
     var audioEnabled: Boolean by Delegates.observable(true) { _, _, value ->
         LibretroDroid.setAudioEnabled(value)
@@ -65,6 +61,7 @@ class GLRetroView(
         LibretroDroid.setShaderConfig(buildShader(value))
     }
 
+    private var isCoreLoaded = false
     private var isGameLoaded = false
     private var isEmulationReady = false
     private var isAborted = false
@@ -77,26 +74,25 @@ class GLRetroView(
     private var lifecycle: Lifecycle? = null
 
     override fun chooseConfig(egl: EGL10?, display: EGLDisplay?): EGLConfig {
-        if (egl == null) {
-            throw IllegalArgumentException("egl is null, can't run under opengl es")
+        try {
+            LibretroDroid.create(
+                data.coreFilePath,
+                data.systemDirectory,
+                data.savesDirectory,
+                data.variables,
+                buildShader(data.shader),
+                getDefaultRefreshRate(),
+                data.preferLowLatencyAudio,
+                data.gameVirtualFiles.isNotEmpty(),
+                data.skipDuplicateFrames,
+                getDeviceLanguage()
+            )
+            LibretroDroid.setRumbleEnabled(data.rumbleEventsEnabled)
+            isCoreLoaded = true
+            loadGame()
+        } catch (e: Exception) {
+            Log.e("GLRetroView", "Can't load core: " + e.localizedMessage)
         }
-        //需要在这里加载core
-        LibretroDroid.create(
-            data.coreFilePath,
-            data.systemDirectory,
-            data.savesDirectory,
-            data.variables,
-            buildShader(data.shader),
-            getDefaultRefreshRate(),
-            data.preferLowLatencyAudio,
-            data.gameVirtualFiles.isNotEmpty(),
-            data.skipDuplicateFrames,
-            getDeviceLanguage()
-        )
-        LibretroDroid.setRumbleEnabled(data.rumbleEventsEnabled)
-
-        initializeCore()
-
         val glVersion = LibretroDroid.getHwVersionMajor()
         val glMinorVersion = LibretroDroid.getHwVersionMinor()
         var bitType = EGLExt.EGL_OPENGL_ES3_BIT_KHR
@@ -113,7 +109,7 @@ class GLRetroView(
         )
         Log.i(TAG_LOG, "[GLRetroView] EGL config: $glVersion.$glMinorVersion")
         val numConfig = IntArray(1)
-        if (!egl.eglChooseConfig(display, config, null, 0, numConfig)) {
+        if (!egl!!.eglChooseConfig(display, config, null, 0, numConfig)) {
             throw IllegalArgumentException("eglChooseConfig failed")
         }
         val numConfigs = numConfig[0]
@@ -127,11 +123,7 @@ class GLRetroView(
         return configs[0]!!
     }
 
-    override fun createContext(
-        egl: EGL10?,
-        display: EGLDisplay?,
-        eglConfig: EGLConfig?
-    ): EGLContext {
+    override fun createContext(egl: EGL10?, display: EGLDisplay?, eglConfig: EGLConfig?): EGLContext {
         if (egl == null) {
             throw IllegalArgumentException("can't create egl context for null")
         }
@@ -187,6 +179,12 @@ class GLRetroView(
         queueEvent { LibretroDroid.onMotionEvent(port, source, xAxis, yAxis) }
     }
 
+    private fun sendTouchEvent(event: MotionEvent) {
+        val x = clamp(event.x / width, 0f, 1f)
+        val y = clamp(event.y / height, 0f, 1f)
+        sendMotionEvent(MOTION_SOURCE_POINTER, x, y)
+    }
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         when (event?.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -206,11 +204,6 @@ class GLRetroView(
 
     private fun clamp(x: Float, min: Float, max: Float) = minOf(maxOf(x, min), max)
 
-    private fun sendTouchEvent(event: MotionEvent) {
-        val x = clamp(event.x / width, 0f, 1f)
-        val y = clamp(event.y / height, 0f, 1f)
-        sendMotionEvent(MOTION_SOURCE_POINTER, x, y)
-    }
 
     fun serializeState(): ByteArray = runOnGLThread {
         LibretroDroid.serializeState()
@@ -383,8 +376,8 @@ class GLRetroView(
         KtUtils.runOnUIThread { setAspectRatio(aspectRatio) }
     }
 
-    // These functions are called from the GL thread.
-    private fun initializeCore() = catchExceptions {
+    // This function is called from the GL thread.
+    private fun loadGame() = catchExceptions {
         if (isGameLoaded) return@catchExceptions
         when {
             data.gameFilePath != null -> loadGameFromPath(data.gameFilePath!!)
@@ -402,8 +395,7 @@ class GLRetroView(
     }
 
     private fun loadGameFromVirtualFiles(virtualFiles: List<VirtualFile>) {
-        val detachedVirtualFiles = virtualFiles
-            .map { DetachedVirtualFile(it.virtualPath, it.fileDescriptor.detachFd()) }
+        val detachedVirtualFiles = virtualFiles.map { DetachedVirtualFile(it.virtualPath, it.fileDescriptor.detachFd()) }
         LibretroDroid.loadGameFromVirtualFiles(detachedVirtualFiles)
     }
 
@@ -555,7 +547,7 @@ class GLRetroView(
     }
 
     companion object {
-        private val TAG_LOG = "libretrodroid" //GLRetroView::class.java.simpleName
+        private val TAG_LOG = "GLRetroView" //GLRetroView::class.java.simpleName
 
         const val MOTION_SOURCE_DPAD = LibretroDroid.MOTION_SOURCE_DPAD
         const val MOTION_SOURCE_ANALOG_LEFT = LibretroDroid.MOTION_SOURCE_ANALOG_LEFT
