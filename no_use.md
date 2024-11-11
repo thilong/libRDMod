@@ -7,6 +7,8 @@
 - SFC
   - libsnes9x
 - MD
+  - libgenesisplusgx
+  - libgenesisplusgxwide
 - NDS
   - libdesmume
   - libdesmume2015
@@ -25,7 +27,7 @@
 - DC
   - libflycase
 - NGP
-  - ??
+  - libmednafenngp
 - PS
   - libpcsxrearmed
   - libswanstation       xx
@@ -36,8 +38,16 @@
   - libmednafensaturn
 - WS/WSC
   - libmednafenwswan
-  - 
-- 3DO
+- PCE
+  - libmednafenpce
+- 3DO  
+  - libopera  (need bios)
 - EasyRPG
+  - libeasyrpg   (black screen) ~~need bios?~~
 - DOS
-- 
+  - libdosboxsvn
+  - libdosboxpure
+  - libdosboxcore
+- Java
+  - libjaxe  (screen size problem)
+- d
